@@ -1,88 +1,116 @@
 #ifndef SUMTABLE_H_
 #define SUMTABLE_H_
 
-#include <imutil.hpp>
+#include <vector>
 
-using namespace imutil;
-
+/**
+ * @brief  Class made for convenient and efficient O(1) calculation of mean and standard deviation (in images etc.)
+ * @note   
+ * @retval None
+ */
 template<typename TYPE_IN, typename TYPE_OUT>
 class summed_area_table
 {
 	private:
-        void build(const cv::Mat& in) {
-            table=cv::Mat::zeros(in.size(),cv::DataType<TYPE_OUT>::type);
+       /**
+        * @brief  Builds the summed area table
+        * @note   
+        * @param  in: 2D data vector
+        * @retval None
+        */
+        void build(const std::vector<std::vector<TYPE_IN>>& in) {
+            int rows=in.size(),cols=in[0].size();
+            table=std::vector<std::vector<TYPE_OUT>>(rows,std::vector<TYPE_OUT>(cols,0));
 
-            for(size_t x=0;x<in.cols;x++) {
-                TYPE_OUT sum=get_px<TYPE_IN>(in,x,0);
+            for(size_t x=0;x<cols;x++) {
+                TYPE_OUT sum=static_cast<TYPE_OUT>(in[0][x]);
 
-                if(x>0) sum+=get_px<TYPE_OUT>(table,x-1,0);
+                if(x>0) sum+=table[0][x-1];
 
-                set_px<TYPE_OUT>(table,x,0,sum);
+                table[0][x]=sum;
         	}
 
-        	for(size_t y=0;y<in.rows;y++) {
-                TYPE_OUT sum=get_px<TYPE_IN>(in,0,y);
+        	for(size_t y=0;y<rows;y++) {
+                TYPE_OUT sum=static_cast<TYPE_OUT>(in[y][0]);
 
-                if(y>0) sum+=get_px<TYPE_OUT>(table,0,y-1);
+                if(y>0) sum+=table[y-1][0];
 
-                set_px<TYPE_OUT>(table,0,y,sum);
+                table[y][0]=sum;
         	}
 
-        	for(size_t x=1;x<in.cols;x++) {
-            	for(size_t y=1;y<in.rows;y++) {
-                    TYPE_OUT C =get_px<TYPE_IN>(in,x,y),Ix=get_px<TYPE_OUT>(table,x-1,y),Iy=get_px<TYPE_OUT>(table,x,y-1),Ixy=get_px<TYPE_OUT>(table,x-1,y-1);
+        	for(size_t x=1;x<cols;x++) {
+            	for(size_t y=1;y<rows;y++) {
+                    TYPE_OUT C =static_cast<TYPE_OUT>(in[y][x]),Ix=table[y][x-1],Iy=table[y-1][x],Ixy=table[y-1][x-1];
                     TYPE_OUT I=C+Ix+Iy-Ixy;
-                    set_px<TYPE_OUT>(table,x,y,I);
+                    table[y][x]=I;
             	}
         	}
     	}
     public:
-        cv::Mat table;
+        std::vector<std::vector<TYPE_OUT>> table;
 
-        summed_area_table(const cv::Mat& in) {
+        summed_area_table(const std::vector<std::vector<TYPE_IN>>& in) {
             build(in);
         }
 
+        /**
+         * @brief  Get sum of rectangular area in table
+         * @note   
+         * @param  x: x coordinate of center of rectangular area
+         * @param  y: y coordinate of center of rectangular area
+         * @param  r: radius of rectangular area (the diameter of the rectangle will be 1+2*r)
+         * @retval returns sum of rectangular area
+         */
         TYPE_OUT sum(int x,int y,int r) {
+            int rows=table.size(),cols=table[0].size();
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
             int xtr=x+r,ytr=y-r-1;
             int xbl=x-r-1,ybl=y+r;
 
-            if(xbr>=table.cols) xbr=table.cols-1;
-            if(ybr>=table.rows) ybr=table.rows-1;
+            if(xbr>=cols) xbr=cols-1;
+            if(ybr>=rows) ybr=rows-1;
 
-            TYPE_OUT br=imutil::get_px<TYPE_OUT>(table,xbr,ybr);
+            TYPE_OUT br=table[ybr][xbr];
             TYPE_OUT winsum=br;
 
             if(xtl>=0&&ytl>=0) {
-                TYPE_OUT tl=imutil::get_px<TYPE_OUT>(table,xtl,ytl);
+                TYPE_OUT tl=table[ytl][xtl];
                 winsum+=tl;
             }
 
             if(xbl>=0) {
-                if(ybl>=table.rows) ybl=table.rows-1;
+                if(ybl>=rows) ybl=rows-1;
 
-                TYPE_OUT bl=imutil::get_px<TYPE_OUT>(table,xbl,ybl);
+                TYPE_OUT bl=table[ybl][xbl];
                 winsum-=bl;
             }
 
             if(ytr>=0) {
-                if(xtr>=table.cols) xtr=table.cols-1;
+                if(xtr>=cols) xtr=cols-1;
 
-                TYPE_OUT tr=imutil::get_px<TYPE_OUT>(table,xtr,ytr);
+                TYPE_OUT tr=table[ytr][xtr];
                 winsum-=tr;
             }
 
             return winsum;
         }
 
+       /**
+         * @brief  Get mean of rectangular area in table
+         * @note   
+         * @param  x: x coordinate of center of rectangular area
+         * @param  y: y coordinate of center of rectangular area
+         * @param  r: radius of rectangular area (the diameter of the rectangle will be 1+2*r)
+         * @retval returns mean of rectangular area
+         */
         TYPE_OUT mean(int x,int y,int r) {
+            int rows=table.size(),cols=table[0].size();
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
 
-            if(xbr>=table.cols) xbr=table.cols-1;
-            if(ybr>=table.rows) ybr=table.rows-1;
+            if(xbr>=cols) xbr=cols-1;
+            if(ybr>=rows) ybr=rows-1;
 
             int wtlx=xtl>=-1?xtl:-1,wtly=ytl>=-1?ytl:-1,wbrx=xbr,wbry=ybr;
             int npx=(wbrx-wtlx)*(wbry-wtly);
@@ -91,15 +119,24 @@ class summed_area_table
             return winsum/npx;
         };
 
-        //when window size is large (>80) you get strange results (the variance is always 0 etc.)
+        /**
+         * @brief  Get variance of rectangular area in table
+         * @note   when window size is large (>80) you get strange results (the variance is always 0 etc.), SOLVE
+         * @param  table_squared: table generated with same 2D data vector with squared elements
+         * @param  x: x coordinate of center of rectangular area
+         * @param  y: y coordinate of center of rectangular area
+         * @param  r: radius of rectangular area (the diameter of the rectangle will be 1+2*r)
+         * @retval returns variance of rectangular area
+         */
         TYPE_OUT variance(summed_area_table& table_squared,int x,int y,int r) {
+            int rows=table.size(),cols=table[0].size();
             TYPE_OUT S1=sum(x,y,r);
             TYPE_OUT S2=table_squared.sum(x,y,r);
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
 
-            if(xbr>=table.cols) xbr=table.cols-1;
-            if(ybr>=table.rows) ybr=table.rows-1;
+            if(xbr>=cols) xbr=cols-1;
+            if(ybr>=rows) ybr=rows-1;
 
             int wtlx=xtl>=-1?xtl:-1,wtly=ytl>=-1?ytl:-1,wbrx=xbr,wbry=ybr;
             int npx=(wbrx-wtlx)*(wbry-wtly);
