@@ -5,10 +5,10 @@
 
 /**
  * @brief  Class made for convenient and efficient O(1) calculation of mean and standard deviation (in images etc.)
- * @note   
+ * @note   User needs to be careful when specifiyng template types to avoid type conversion issues
  * @retval None
  */
-template<typename TYPE_IN, typename TYPE_OUT>
+template<typename TYPE_IN, typename TYPE_TABLE>
 class summed_area_table
 {
 	private:
@@ -20,10 +20,10 @@ class summed_area_table
         */
         void build(const std::vector<std::vector<TYPE_IN>>& in) {
             int rows=in.size(),cols=in[0].size();
-            table=std::vector<std::vector<TYPE_OUT>>(rows,std::vector<TYPE_OUT>(cols,0));
+            table=std::vector<std::vector<TYPE_TABLE>>(rows,std::vector<TYPE_TABLE>(cols,0));
 
             for(size_t x=0;x<cols;x++) {
-                TYPE_OUT sum=static_cast<TYPE_OUT>(in[0][x]);
+                TYPE_TABLE sum=static_cast<TYPE_TABLE>(in[0][x]);
 
                 if(x>0) sum+=table[0][x-1];
 
@@ -31,7 +31,7 @@ class summed_area_table
         	}
 
         	for(size_t y=0;y<rows;y++) {
-                TYPE_OUT sum=static_cast<TYPE_OUT>(in[y][0]);
+                TYPE_TABLE sum=static_cast<TYPE_TABLE>(in[y][0]);
 
                 if(y>0) sum+=table[y-1][0];
 
@@ -40,14 +40,14 @@ class summed_area_table
 
         	for(size_t x=1;x<cols;x++) {
             	for(size_t y=1;y<rows;y++) {
-                    TYPE_OUT C =static_cast<TYPE_OUT>(in[y][x]),Ix=table[y][x-1],Iy=table[y-1][x],Ixy=table[y-1][x-1];
-                    TYPE_OUT I=C+Ix+Iy-Ixy;
+                    TYPE_TABLE C =static_cast<TYPE_TABLE>(in[y][x]),Ix=table[y][x-1],Iy=table[y-1][x],Ixy=table[y-1][x-1];
+                    TYPE_TABLE I=C+Ix+Iy-Ixy;
                     table[y][x]=I;
             	}
         	}
     	}
     public:
-        std::vector<std::vector<TYPE_OUT>> table;
+        std::vector<std::vector<TYPE_TABLE>> table;
 
         summed_area_table(const std::vector<std::vector<TYPE_IN>>& in) {
             build(in);
@@ -61,7 +61,7 @@ class summed_area_table
          * @param  r: radius of rectangular area (the diameter of the rectangle will be 1+2*r)
          * @retval returns sum of rectangular area
          */
-        TYPE_OUT sum(int x,int y,int r) {
+        TYPE_TABLE sum(int x,int y,int r) {
             int rows=table.size(),cols=table[0].size();
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
@@ -71,25 +71,25 @@ class summed_area_table
             if(xbr>=cols) xbr=cols-1;
             if(ybr>=rows) ybr=rows-1;
 
-            TYPE_OUT br=table[ybr][xbr];
-            TYPE_OUT winsum=br;
+            TYPE_TABLE br=table[ybr][xbr];
+            TYPE_TABLE winsum=br;
 
             if(xtl>=0&&ytl>=0) {
-                TYPE_OUT tl=table[ytl][xtl];
+                TYPE_TABLE tl=table[ytl][xtl];
                 winsum+=tl;
             }
 
             if(xbl>=0) {
                 if(ybl>=rows) ybl=rows-1;
 
-                TYPE_OUT bl=table[ybl][xbl];
+                TYPE_TABLE bl=table[ybl][xbl];
                 winsum-=bl;
             }
 
             if(ytr>=0) {
                 if(xtr>=cols) xtr=cols-1;
 
-                TYPE_OUT tr=table[ytr][xtr];
+                TYPE_TABLE tr=table[ytr][xtr];
                 winsum-=tr;
             }
 
@@ -104,7 +104,7 @@ class summed_area_table
          * @param  r: radius of rectangular area (the diameter of the rectangle will be 1+2*r)
          * @retval returns mean of rectangular area
          */
-        TYPE_OUT mean(int x,int y,int r) {
+        double mean(int x,int y,int r) {
             int rows=table.size(),cols=table[0].size();
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
@@ -114,7 +114,7 @@ class summed_area_table
 
             int wtlx=xtl>=-1?xtl:-1,wtly=ytl>=-1?ytl:-1,wbrx=xbr,wbry=ybr;
             int npx=(wbrx-wtlx)*(wbry-wtly);
-            TYPE_OUT winsum=sum(x,y,r);
+            double winsum=static_cast<double>(sum(x,y,r));
 
             return winsum/npx;
         };
@@ -128,10 +128,10 @@ class summed_area_table
          * @param  r: radius of rectangular area (the diameter of the rectangle will be 1+2*r)
          * @retval returns variance of rectangular area
          */
-        TYPE_OUT variance(summed_area_table& table_squared,int x,int y,int r) {
+        double variance(summed_area_table& table_squared,int x,int y,int r) {
             int rows=table.size(),cols=table[0].size();
-            TYPE_OUT S1=sum(x,y,r);
-            TYPE_OUT S2=table_squared.sum(x,y,r);
+            double S1=static_cast<double>(sum(x,y,r));
+            double S2=static_cast<double>(table_squared.sum(x,y,r));
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
 
