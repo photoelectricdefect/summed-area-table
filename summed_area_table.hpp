@@ -3,6 +3,8 @@
 
 #include <vector>
 
+//TODO: Add r_a and r_b, i.e. the user should be able to specify rectangle side lengths
+
 /**
  * @brief  Class made for convenient and efficient O(1) calculation of mean and standard deviation (in images etc.)
  * @note   User needs to be careful when specifiyng template types to avoid type conversion issues
