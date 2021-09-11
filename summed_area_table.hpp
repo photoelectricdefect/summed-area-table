@@ -46,6 +46,26 @@ class summed_area_table
             	}
         	}
     	}
+
+        /**
+         * @brief  Calculates number of pixels (area) inside window
+         * @note   
+         * @param  x: x coordinate of center of rectangular area
+         * @param  y: y coordinate of center of rectangular area
+         * @param  r: radius of rectangular area (the diameter of the rectangle will be 1+2*r)
+         * @retval 
+         */
+        int win_area(int x,int y,int r) {
+            int rows=table.size(),cols=table[0].size();
+            int xbr=x+r,ybr=y+r;
+            int xtl=x-r-1,ytl=y-r-1;
+
+            if(xbr>=cols) xbr=cols-1;
+            if(ybr>=rows) ybr=rows-1;
+
+            int wtlx=xtl>=-1?xtl:-1,wtly=ytl>=-1?ytl:-1,wbrx=xbr,wbry=ybr;
+            return (wbrx-wtlx)*(wbry-wtly);
+        }
     public:
         std::vector<std::vector<TYPE_TABLE>> table;
 
@@ -105,18 +125,10 @@ class summed_area_table
          * @retval returns mean of rectangular area
          */
         double mean(int x,int y,int r) {
-            int rows=table.size(),cols=table[0].size();
-            int xbr=x+r,ybr=y+r;
-            int xtl=x-r-1,ytl=y-r-1;
-
-            if(xbr>=cols) xbr=cols-1;
-            if(ybr>=rows) ybr=rows-1;
-
-            int wtlx=xtl>=-1?xtl:-1,wtly=ytl>=-1?ytl:-1,wbrx=xbr,wbry=ybr;
-            int npx=(wbrx-wtlx)*(wbry-wtly);
             double winsum=static_cast<double>(sum(x,y,r));
+            int area=win_area(x,y,r);
 
-            return winsum/npx;
+            return winsum/area;
         };
 
         /**
@@ -129,19 +141,11 @@ class summed_area_table
          * @retval returns variance of rectangular area
          */
         double variance(summed_area_table& table_squared,int x,int y,int r) {
-            int rows=table.size(),cols=table[0].size();
             double S1=static_cast<double>(sum(x,y,r));
             double S2=static_cast<double>(table_squared.sum(x,y,r));
-            int xbr=x+r,ybr=y+r;
-            int xtl=x-r-1,ytl=y-r-1;
+            int area=win_area(x,y,r);
 
-            if(xbr>=cols) xbr=cols-1;
-            if(ybr>=rows) ybr=rows-1;
-
-            int wtlx=xtl>=-1?xtl:-1,wtly=ytl>=-1?ytl:-1,wbrx=xbr,wbry=ybr;
-            int npx=(wbrx-wtlx)*(wbry-wtly);
-
-            return (S2-pow(S1,2)/npx)/npx;
+            return (S2-pow(S1,2)/area)/area;
         };
 };
 
