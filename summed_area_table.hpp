@@ -21,7 +21,6 @@ class summed_area_table
         * @retval None
         */
         void build(const std::vector<std::vector<TYPE_IN>>& in) {
-            int rows=in.size(),cols=in[0].size();
             table=std::vector<std::vector<TYPE_TABLE>>(rows,std::vector<TYPE_TABLE>(cols,0));
 
             for(size_t x=0;x<cols;x++) {
@@ -47,6 +46,8 @@ class summed_area_table
                     table[y][x]=I;
             	}
         	}
+
+            rows=table.size(),cols=table[0].size();
     	}
 
         /**
@@ -58,7 +59,6 @@ class summed_area_table
          * @retval 
          */
         int win_area(int x,int y,int r) {
-            int rows=table.size(),cols=table[0].size();
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
 
@@ -69,6 +69,7 @@ class summed_area_table
             return (wbrx-wtlx)*(wbry-wtly);
         }
     public:
+        int rows,cols;
         std::vector<std::vector<TYPE_TABLE>> table;
 
         summed_area_table(const std::vector<std::vector<TYPE_IN>>& in) {
@@ -84,7 +85,6 @@ class summed_area_table
          * @retval returns sum of rectangular area
          */
         TYPE_TABLE sum(int x,int y,int r) {
-            int rows=table.size(),cols=table[0].size();
             int xbr=x+r,ybr=y+r;
             int xtl=x-r-1,ytl=y-r-1;
             int xtr=x+r,ytr=y-r-1;
